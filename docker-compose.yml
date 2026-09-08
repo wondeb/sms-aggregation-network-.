@@ -1,1 +1,80 @@
+version: '3.8'
 
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sms-db
+    environment:
+      POSTGRES_DB: sms_network
+      POSTGRES_USER: sms_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - sms-net
+    restart: always
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: sms-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    networks:
+      - sms-net
+    restart: always
+    ports:
+      - "6379:6379"
+
+  master-app:
+    build: ./master-server
+    container_name: sms-master
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://sms_admin:${DB_PASSWORD}@postgres:5432/sms_network
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      FIVESIM_API_KEY: ${FIVESIM_API_KEY}
+      HEROSMS_API_KEY: ${HEROSMS_API_KEY}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - sms-net
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    container_name: sms-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - master-app
+    networks:
+      - sms-net
+    restart: always
+
+  admin-panel:
+    build: ./admin-panel
+    container_name: sms-admin
+    ports:
+      - "8080:80"
+    depends_on:
+      - master-app
+    networks:
+      - sms-net
+    restart: always
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  sms-net:
+    driver: bridge
