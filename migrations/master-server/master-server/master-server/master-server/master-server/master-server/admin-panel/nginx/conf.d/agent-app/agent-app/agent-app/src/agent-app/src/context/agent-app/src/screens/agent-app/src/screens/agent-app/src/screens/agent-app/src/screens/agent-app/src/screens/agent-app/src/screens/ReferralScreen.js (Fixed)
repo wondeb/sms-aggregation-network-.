@@ -1,0 +1,191 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  View, Text, StyleSheet, Alert, ScrollView, TextInput, 
+  TouchableOpacity, Share 
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { API_URL, ENDPOINTS } from '../config';
+import { useAuth } from '../context/AuthContext';
+
+const ReferralScreen = () => {
+  const [referralLink, setReferralLink] = useState('');
+  const [stats, setStats] = useState({ total_referrals: 0, total_commission: 0 });
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    generateLink();
+  }, []);
+
+  const generateLink = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await axios.get(`${API_URL}${ENDPOINTS.REFERRAL_LINK}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReferralLink(res.data.link);
+      setStats({
+        total_referrals: res.data.total_referrals,
+        total_commission: res.data.total_commission
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate referral link');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const shareLink = async () => {
+    try {
+      await Share.share({
+        message: `Join SMS Network and start earning! Use my referral link: ${referralLink}`,
+        title: 'SMS Network Referral'
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share link');
+    }
+  };
+
+  const copyLink = () => {
+    Alert.alert('Copied!', 'Link copied to clipboard. Share with friends!');
+  };
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>🚀 Become a Partner</Text>
+        <Text style={styles.subtitle}>Earn 5% commission on your friends' earnings forever!</Text>
+      </View>
+
+      <View style={styles.statsCard}>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{stats.total_referrals}</Text>
+          <Text style={styles.statLabel}>Referrals</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>${stats.total_commission.toFixed(2)}</Text>
+          <Text style={styles.statLabel}>Earned</Text>
+        </View>
+      </View>
+
+      <View style={styles.linkSection}>
+        <Text style={styles.linkLabel}>Your Referral Link</Text>
+        <TextInput
+          style={styles.linkInput}
+          value={referralLink}
+          editable={false}
+          selectTextOnFocus
+          multiline
+        />
+        
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.copyBtn} onPress={copyLink}>
+            <Text style={styles.copyText}>📋 Copy Link</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.shareBtn} onPress={shareLink}>
+            <Text style={styles.shareText}>📤 Share</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>How It Works</Text>
+        <Text style={styles.infoStep}>1. Share your unique referral link with friends</Text>
+        <Text style={styles.infoStep}>2. They sign up and start earning</Text>
+        <Text style={styles.infoStep}>3. You earn 5% of their earnings automatically</Text>
+        <Text style={styles.infoStep}>4. No limit on how much you can earn!</Text>
+      </View>
+
+      <View style={styles.tipsCard}>
+        <Text style={styles.tipsTitle}>💡 Pro Tips</Text>
+        <Text style={styles.tipsText}>• Share on social media and forums</Text>
+        <Text style={styles.tipsText}>• Create content about earning online</Text>
+        <Text style={styles.tipsText}>• Target people looking for side income</Text>
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#1e1e1e' },
+  header: { 
+    padding: 20, 
+    backgroundColor: '#21262d',
+    alignItems: 'center'
+  },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: '#8b949e', textAlign: 'center' },
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: '#161b22',
+    margin: 15,
+    padding: 20,
+    borderRadius: 10,
+    justifyContent: 'space-around',
+    alignItems: 'center'
+  },
+  statItem: { alignItems: 'center', flex: 1 },
+  statValue: { fontSize: 28, fontWeight: 'bold', color: '#58a6ff' },
+  statLabel: { fontSize: 14, color: '#8b949e', marginTop: 5 },
+  statDivider: { width: 1, height: 40, backgroundColor: '#30363d' },
+  linkSection: { padding: 15 },
+  linkLabel: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
+  linkInput: { 
+    backgroundColor: '#30363d', 
+    color: '#2ea043', 
+    padding: 15, 
+    borderRadius: 10, 
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#484f58',
+    minHeight: 80,
+    textAlignVertical: 'top'
+  },
+  buttonRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginTop: 15 
+  },
+  copyBtn: { 
+    backgroundColor: '#238636', 
+    padding: 14, 
+    borderRadius: 10, 
+    flex: 1, 
+    marginRight: 10,
+    alignItems: 'center'
+  },
+  shareBtn: { 
+    backgroundColor: '#0969da', 
+    padding: 14, 
+    borderRadius: 10, 
+    flex: 1, 
+    marginLeft: 10,
+    alignItems: 'center'
+  },
+  copyText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  shareText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  infoCard: {
+    backgroundColor: '#161b22',
+    margin: 15,
+    padding: 15,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#238636'
+  },
+  infoTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
+  infoStep: { color: '#8b9  49e', marginBottom: 8, fontSize: 14 },
+  tipsCard: {
+    backgroundColor: '#161b22',
+    margin: 15,
+    padding: 15,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#e3b341',
+    marginBottom: 40
+  },
+  tipsTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
+  tipsText: { color: '#8b949e', marginBottom: 8, fontSize: 14 }
