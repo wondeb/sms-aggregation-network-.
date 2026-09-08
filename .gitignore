@@ -1,0 +1,12 @@
+node_modules/
+.env
+*.log
+dist/
+*.aab
+*.ipa
+.pip-cache/
+.DS_Store
+*.tmp
+coverage/
+.vscode/
+.idea/
